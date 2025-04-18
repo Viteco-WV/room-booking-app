@@ -1,6 +1,15 @@
 import React from 'react';
 import { Users, Monitor } from 'lucide-react';
 
+// Define the Room type
+interface Room {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  hasBooking: boolean;
+}
+
 const TvvlLogo = () => (
   <svg viewBox="0 0 100 60" className="w-12 h-8">
     <g transform="translate(0, 5)">
@@ -12,14 +21,14 @@ const TvvlLogo = () => (
 );
 
 const RoomBookingSystem = () => {
-  const meetingRooms = [
+  const meetingRooms: Room[] = [
     { id: 'bestuurskamer', name: 'Bestuurskamer', type: 'meeting', description: 'KNVVK Bestuursvergadering', hasBooking: true },
     { id: 'vergaderzaal1', name: 'Vergaderzaal 1', type: 'meeting', hasBooking: false },
     { id: 'vergaderzaal2', name: 'Vergaderzaal 2', type: 'meeting', hasBooking: false },
     { id: 'vergaderzaal3', name: 'Vergaderzaal 3', type: 'meeting', hasBooking: false },
   ];
 
-  const trainingRooms = [
+  const trainingRooms: Room[] = [
     { id: 'cursus1', name: 'Cursusruimte 1', type: 'training', description: 'Luchtbehandeling Speciale Ruimten', hasBooking: true },
     { id: 'cursus2', name: 'Cursusruimte 2', type: 'training', hasBooking: false },
     { id: 'cursus3', name: 'Cursusruimte 3', type: 'training', description: 'Installeren PV panelen / zonnestroom laagspanningsnet', hasBooking: true },
@@ -27,7 +36,8 @@ const RoomBookingSystem = () => {
     { id: 'cursus5', name: 'Cursusruimte 5 / Webinarstudio', type: 'training', hasBooking: false },
   ];
 
-  const RoomCard = ({ room }) => (
+  // Add proper typing to the RoomCard component
+  const RoomCard = ({ room }: { room: Room }) => (
     <div className="bg-white rounded-lg border border-gray-200 mb-4 p-4 h-32">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-medium">{room.name}</h3>
