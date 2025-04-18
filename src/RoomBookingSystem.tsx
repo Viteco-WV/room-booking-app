@@ -65,7 +65,7 @@ const RoomBookingSystem = () => {
         <h1 className="text-xl font-semibold">Planning ruimte</h1>
       </div>
       
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
         {/* Meeting Rooms Column */}
         <div>
           <div className="flex items-center mb-4">
