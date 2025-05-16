@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, GaugeCircle, Leaf } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Leaf } from 'lucide-react';
 import { ReactComponent as WeiiChart } from '../assets/icons/energiekompas.svg';
 import { ReactComponent as TvvlLogo } from '../assets/icons/tvvl-logo.svg';
 import woerdenImage from '../assets/images/woerden.png';
