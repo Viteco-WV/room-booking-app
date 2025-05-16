@@ -45,6 +45,10 @@
         font-weight: 600;
       }
 
+      .cls-29 {
+        font-size: 50px;
+      }
+
       .cls-23, .cls-25, .cls-15, .cls-29 {
         fill: #002f73;
       }
@@ -196,9 +200,9 @@
     </style>
   </defs>
     
-<g transform="translate(0, 30)">
+<g transform="translate(0, 0)">
     <!-- Group starting the logo -->
-    <g transform="scale(2.5) translate(-10, 0)">
+    <g transform="scale(3.5) translate(-50, 0)">
     <g>
       
       
@@ -279,7 +283,7 @@
   
   <!-- Start making the graph -->
 
-  <g transform="translate(0, 70)">
+  <g transform="translate(0, 125)">
 	
   <rect class="cls-10" x="1.5" y="34.26" width="55.03" height="26.37" rx="5.84" ry="5.84"></rect>
   <text class="cls-30" transform="translate(20.16 44.58)"><tspan class="cls-34" x="0" y="0">z</tspan><tspan class="cls-20" x="4.1" y="0">eer</tspan><tspan class="cls-20"><tspan x="-8.23" y="9.6">onzuinig</tspan></tspan></text>
@@ -369,8 +373,8 @@
   <text class="cls-25" transform="translate(268.5 455.76)"><tspan class="cls-19" x="0" y="0">Energielabel</tspan></text>
 
   <!-- <line class="cls-1" x1="362.72" y1="41.39" x2="362.72" y2="394.72"/> -->
-  <circle cy="240.169" cx="384.54" fill="#b21d45" r="3"></circle>
-  <text class="cls-29" y="243.169" x="389.54">3447GG</text>
+  <circle cy="240.169" cx="384.54" fill="#b21d45" r="6"></circle>
+  <text class="cls-29" y="243.169" x="389.54" transform="scale(1.8) translate(-200,-120)">Verbruik 2024</text>
   </g>
   </g>
 </svg>
