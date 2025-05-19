@@ -1,46 +1,262 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Leaf } from 'lucide-react';
 import { ReactComponent as WeiiChart } from '../assets/icons/energiekompas.svg';
 import { ReactComponent as TvvlLogo } from '../assets/icons/tn-logo.svg';
 import woerdenImage from '../assets/images/woerden.png';
 
-// Monthly data for electricity usage
-const electricityData = [
-  { month: 'Jan.', '2022': 65000, '2023': 82000, '2024': 85000, '2025': 88000 },
-  { month: 'Feb.', '2022': 55000, '2023': 85000, '2024': 72000, '2025': 75000 },
-  { month: 'Mrt.', '2022': 62000, '2023': 75000, '2024': 72000, '2025': 74000 },
-  { month: 'Apr.', '2022': 58000, '2023': 70000, '2024': 68000, '2025': 70000 },
-  { month: 'Mei', '2022': 72000, '2023': 85000, '2024': 85000, '2025': 87000 },
-  { month: 'Jun.', '2022': 75000, '2023': 110000, '2024': 85000, '2025': 0 },
-  { month: 'Jul.', '2022': 85000, '2023': 110000, '2024': 95000, '2025': 0 },
-  { month: 'Aug.', '2022': 92000, '2023': 92000, '2024': 88000, '2025': 0 },
-  { month: 'Sep.', '2022': 70000, '2023': 85000, '2024': 85000, '2025': 0 },
-  { month: 'Oct.', '2022': 65000, '2023': 85000, '2024': 35000, '2025': 0 },
-  { month: 'Nov.', '2022': 60000, '2023': 80000, '2024': 80000, '2025': 0 },
-  { month: 'Dec.', '2022': 62000, '2023': 72000, '2024': 72000, '2025': 0 },
-];
 
-// Monthly data for gas usage
-const gasData = [
-  { month: 'Jan', '2022': 17000, '2023': 22000, '2024': 18000, '2025': 16000 },
-  { month: 'Feb', '2022': 14000, '2023': 15000, '2024': 13000, '2025': 12000 },
-  { month: 'Mar', '2022': 12000, '2023': 14000, '2024': 10000, '2025': 9000 },
-  { month: 'Apr', '2022': 9500, '2023': 12000, '2024': 8000, '2025': 7500 },
-  { month: 'May', '2022': 5000, '2023': 7000, '2024': 4000, '2025': 3500 },
-  { month: 'Jun', '2022': 3000, '2023': 4000, '2024': 1500, '2025': 1200 },
-  { month: 'Jul', '2022': 2000, '2023': 1500, '2024': 1000, '2025': 0 },
-  { month: 'Aug', '2022': 1500, '2023': 1500, '2024': 1000, '2025': 0 },
-  { month: 'Sep', '2022': 2500, '2023': 3000, '2024': 2000, '2025': 0 },
-  { month: 'Oct', '2022': 8000, '2023': 7000, '2024': 5000, '2025': 0 },
-  { month: 'Nov', '2022': 12000, '2023': 11000, '2024': 11000, '2025': 0 },
-  { month: 'Dec', '2022': 19000, '2023': 17000, '2024': 11000, '2025': 0 },
-];
+// Functie om de beschikbare jaren uit de data te extraheren
+  const extractYearsFromData = (data: any[]): string[] => {
+    if (!data || data.length === 0) return [];
+    
+    return Object.keys(data[0])
+      .filter(key => {
+        // Controleer of de sleutel naar een jaar verwijst (een getal van 4 cijfers)
+        return key !== 'month' && /^\d{4}$/.test(key);
+      })
+      .sort((a, b) => Number(a) - Number(b)); // Sorteer numeriek
+  };
 
-const EnergyDashboard = () => {
+interface EnergyDataPoint {
+  month: string;
+  [key: string]: string | number; // Dynamische type voor alle velden
+}
+
+const EnergyDashboard: React.FC = () => {
+  // State toevoegen voor data van API met correcte types
+  const [electricityData, setElectricityData] = useState<EnergyDataPoint[]>([]);
+  const [gasData, setGasData] = useState<EnergyDataPoint[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // State voor dynamische jaartallen
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  
+  // State voor jaarlijkse totalen
+  const [electricityTotals, setElectricityTotals] = useState<{[year: string]: number}>({});
+  const [gasTotals, setGasTotals] = useState<{[year: string]: number}>({});
+
+  // Functie om dynamisch data te genereren voor fallback
+  const createStaticData = (years: string[]): EnergyDataPoint[] => {
+    const months = ['Jan.', 'Feb.', 'Mrt.', 'Apr.', 'Mei', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+    
+    return months.map(month => {
+      const dataPoint: EnergyDataPoint = { month };
+      // Voeg dynamisch alle jaren toe
+      years.forEach(year => {
+        dataPoint[year] = Math.floor(Math.random() * 50000) + 50000; // Willekeurige waarde tussen 50000-100000
+      });
+      return dataPoint;
+    });
+  };
+
+  // Render debug component om state te visualiseren
+  const DebugStateComponent = () => (
+    <div className="mb-4 p-2 bg-gray-100 border border-gray-300 rounded">
+      <h3 className="text-sm font-bold mb-1">Debug Informatie:</h3>
+      <div className="text-xs">
+        <div>Available Years: {availableYears.join(', ')}</div>
+        <div>Elektriciteitsdata geladen: {electricityData.length > 0 ? 'Ja' : 'Nee'}</div>
+        <div>Gasdata geladen: {gasData.length > 0 ? 'Ja' : 'Nee'}</div>
+        <div>Loading state: {loading ? 'Laden...' : 'Klaar'}</div>
+        {error && <div className="text-red-500">Error: {error}</div>}
+      </div>
+    </div>
+  );
+
+  // Data ophalen van API endpoints
+  useEffect(() => {
+    const fetchElectricityData = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/energy-data-elec');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const responseJson: any = await response.json();
+        console.log('Elektriciteitsdata raw API response:', responseJson);
+        
+        // Check of de response een object is met een 'electricityData' property of een array
+        let rawData: any[] = [];
+        if (responseJson && responseJson.elecData && Array.isArray(responseJson.elecData)) {
+          rawData = responseJson.elecData;
+          console.log('Elektriciteitsdata uit API (genest):', rawData);
+        } else if (Array.isArray(responseJson)) {
+          rawData = responseJson;
+          console.log('Elektriciteitsdata uit API (direct array):', rawData);
+        } else {
+          throw new Error('Onverwacht API-responseformaat: kon geen elektriciteitsdata vinden');
+        }
+        
+        // Detecteer beschikbare jaartallen
+        const years = extractYearsFromData(rawData);
+        console.log('Gedetecteerde jaren in elektriciteitsdata:', years);
+        
+        if (years.length === 0) {
+          throw new Error('Geen jaartallen gedetecteerd in de data');
+        }
+        
+        // Hervorm de data als nodig is om consistentie te garanderen
+        const formattedData: EnergyDataPoint[] = rawData.map(item => {
+          const dataPoint: EnergyDataPoint = { month: item.month };
+          
+          // Voeg alle jaren toe als numerieke waarden
+          years.forEach(year => {
+            const value = item[year];
+            dataPoint[year] = typeof value === 'number' ? value : Number(value || 0);
+          });
+          
+          return dataPoint;
+        });
+        
+        // Update de state
+        setAvailableYears(years);
+        setElectricityData(formattedData);
+        console.log('Geformatteerde elektriciteitsdata:', formattedData);
+        
+      } catch (err: any) {
+        console.error('Probleem bij ophalen van elektriciteitsdata:', err);
+        setError(err.message || 'Error fetching electricity data');
+        
+        // Fallback naar test data met standaard jaren
+        const defaultYears = ['2023', '2024', '2025', '2026'];
+        setAvailableYears(defaultYears);
+        setElectricityData(createStaticData(defaultYears));
+      }
+    };
+
+    const fetchGasData = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/energy-data-gas');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const responseJson: any = await response.json();
+        console.log('Gasdata raw API response:', responseJson);
+        
+        // Check of de response een object is met een 'gasData' property of een array
+        let rawData: any[] = [];
+        if (responseJson && responseJson.gasData && Array.isArray(responseJson.gasData)) {
+          rawData = responseJson.gasData;
+          console.log('Gasdata uit API (genest):', rawData);
+        } else if (Array.isArray(responseJson)) {
+          rawData = responseJson;
+          console.log('Gasdata uit API (direct array):', rawData);
+        } else {
+          throw new Error('Onverwacht API-responseformaat: kon geen gasdata vinden');
+        }
+        
+        // Gebruik de jaren die we al hebben gedetecteerd bij elektriciteitsdata voor consistentie
+        const years = availableYears.length > 0 ? availableYears : extractYearsFromData(rawData);
+        console.log('Jaren te gebruiken voor gasdata:', years);
+        
+        if (years.length === 0) {
+          throw new Error('Geen jaartallen gedetecteerd in de data');
+        }
+        
+        // Hervorm de data als nodig is om consistentie te garanderen
+        const formattedData: EnergyDataPoint[] = rawData.map(item => {
+          const dataPoint: EnergyDataPoint = { month: item.month };
+          
+          // Voeg alle jaren toe als numerieke waarden
+          years.forEach(year => {
+            const value = item[year];
+            dataPoint[year] = typeof value === 'number' ? value : Number(value || 0);
+          });
+          
+          return dataPoint;
+        });
+        
+        // Update de state
+        setGasData(formattedData);
+        console.log('Geformatteerde gasdata:', formattedData);
+        
+      } catch (err: any) {
+        console.error('Probleem bij ophalen van gasdata:', err);
+        setError(err.message || 'Error fetching gas data');
+        
+        // Gebruik de jaren die we hebben voor elektriciteit, of fallback naar standaard
+        const years = availableYears.length > 0 ? availableYears : ['2023', '2024', '2025', '2026'];
+        setGasData(createStaticData(years));
+      }
+    };
+
+    // Beide datasets ophalen en loading status bijwerken
+    const fetchAllData = async () => {
+      setLoading(true);
+      await fetchElectricityData(); // Haal eerst elektriciteitsdata op om jaren te detecteren
+      await fetchGasData();         // Gebruik dezelfde jaren voor gasdata
+      setLoading(false);
+    };
+
+    fetchAllData();
+  }, []); // Lege dependency array betekent dat dit alleen bij mount uitgevoerd wordt
+
+  // Effect om totalen te berekenen wanneer data verandert
+  useEffect(() => {
+    if (!loading && electricityData.length > 0 && gasData.length > 0) {
+      // Check of we beschikbare jaren hebben, anders opnieuw detecteren
+      let yearsToUse = [...availableYears]; // Maak een kopie om mutatie te voorkomen
+      
+      // Als we geen jaren hebben, probeer ze opnieuw uit de data te extraheren
+      if (yearsToUse.length === 0) {
+        const elecYears = extractYearsFromData(electricityData);
+        console.log('TOTALS: Jaren gedetecteerd vanuit data (want availableYears leeg):', elecYears);
+        yearsToUse = elecYears;
+        // Update de availableYears state als we nieuwe jaren hebben gevonden
+        if (elecYears.length > 0) {
+          setAvailableYears(elecYears);
+        }
+      }
+      
+      console.log('TOTALS: Jaren gebruikt voor totaalberekeningen:', yearsToUse);
+      
+      if (yearsToUse.length > 0) {
+        // Bereken totalen per jaar voor elektriciteit
+        const elecTotals: {[year: string]: number} = {};
+        yearsToUse.forEach(year => {
+          elecTotals[year] = electricityData.reduce((total, dataPoint) => {
+            const value = typeof dataPoint[year] === 'number' 
+              ? dataPoint[year] as number 
+              : Number(dataPoint[year] || 0);
+            return total + value;
+          }, 0);
+        });
+        
+        console.log('TOTALS: Elektriciteit totalen per jaar:', elecTotals);
+        setElectricityTotals(elecTotals);
+        
+        // Bereken totalen per jaar voor gas
+        const gasTotalsObj: {[year: string]: number} = {};
+        yearsToUse.forEach(year => {
+          gasTotalsObj[year] = gasData.reduce((total, dataPoint) => {
+            const value = typeof dataPoint[year] === 'number' 
+              ? dataPoint[year] as number 
+              : Number(dataPoint[year] || 0);
+            return total + value;
+          }, 0);
+        });
+        
+        console.log('TOTALS: Gas totalen per jaar:', gasTotalsObj);
+        setGasTotals(gasTotalsObj);
+      } else {
+        console.error('TOTALS: Geen jaren beschikbaar voor berekening totalen');
+      }
+    }
+  }, [loading, electricityData, gasData, availableYears]);
+
+  if (loading) return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="text-xl font-semibold">Data wordt geladen...</div>
+    </div>
+  );
+
   return (
     <div className="p-6 font-sans text-gray-800" style={{ backgroundColor: '#d3e6f8' }}>
       <div className="max-w-10xl mx-auto">
+
+        {/* Debug info */}
+        {/*<DebugStateComponent />*/}
 
         {/* Consistent container for all content */}
         <div className="flex flex-col w-full">
@@ -96,14 +312,14 @@ const EnergyDashboard = () => {
                   <div className="w-1/2 bg-blue-50 rounded-lg p-2 ml-2 h-14 font-bold text-gray-800 flex items-center justify-center">
                     {/* Inhoud van de blauwe box */}
                     <div className="mb-2 pt-2">
-                      <div className="text-xs text-gray-500 mb-1">Energy efficiëntie</div>
+                      <div className="text-xs text-gray-500 mb-1">Energie efficiëntie</div>
                       <div className="text-base font-bold">140 kWh/m²</div>
                     </div>
                   </div>
                   <div className="w-1/2 bg-green-50 rounded-lg p-2 ml-2 h-14 font-bold text-gray-800 flex items-center justify-center">
                     {/* Inhoud van de blauwe box */}
                     <div className="mb-2 pt-2">
-                      <div className="text-xs text-gray-500  mb-1">Paris Agreement Target</div>
+                      <div className="text-xs text-gray-500  mb-1">Parijs akkoord</div>
                       <div className="text-base font-bold">70 kWh/m²</div>
                     </div>
                   </div>
@@ -152,38 +368,30 @@ const EnergyDashboard = () => {
 
               {/* Electricity usage cards */}
               <div className="grid grid-cols-4 gap-4 mb-6">
-                
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Elektra 2022</div>
-                  <div className="font-bold text-xl">1.026.582 kWh</div>
-                  <div className="flex items-center justify-center text-sm text-green-500 mt-1 w-full">
-                    <ArrowUpRight size={16} className="mr-1" />
-                    <span>+20.1% vs 2021</span>
+                {availableYears.map((year, index) => (
+                  <div key={year} className="bg-white rounded-lg shadow p-4 text-center">
+                    <div className="text-sm text-gray-600">Elektra {year}</div>
+                    <div className="font-bold text-xl">{(electricityTotals[year] || 0).toLocaleString('nl-NL')} kWh</div>
+                    {index > 0 && (
+                      <div className={`flex items-center justify-center text-sm mt-1 w-full ${
+                        electricityTotals[year] > electricityTotals[availableYears[index-1]]
+                          ? 'text-green-500'
+                          : 'text-red-500'
+                      }`}>
+                        {electricityTotals[year] > electricityTotals[availableYears[index-1]] ? (
+                          <ArrowUpRight size={16} className="mr-1" />
+                        ) : (
+                          <ArrowDownRight size={16} className="mr-1" />
+                        )}
+                        <span>
+                          {electricityTotals[availableYears[index-1]] === 0 
+                            ? 'N/A' 
+                            : `${Math.abs(Math.round((electricityTotals[year] - electricityTotals[availableYears[index-1]]) / electricityTotals[availableYears[index-1]] * 1000) / 10).toFixed(1)}% vs ${availableYears[index-1]}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Elektra 2023</div>
-                  <div className="font-bold text-xl">1.026.582 kWh</div>
-                  <div className="flex items-center justify-center text-sm text-green-500 mt-1 w-full">
-                    <ArrowUpRight size={16} className="mr-1" />
-                    <span>+20.1% vs 2022</span>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Elektra 2024</div>
-                  <div className="font-bold text-xl">1.026.582 kWh</div>
-                  <div className="flex items-center justify-center text-sm text-green-500 mt-1 w-full">
-                    <ArrowUpRight size={16} className="mr-1" />
-                    <span>+20.1% vs 2023</span>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Elektra 2025</div>
-                  <div className="font-bold text-xl">854.900 kWh</div>
-                </div>
+                ))}
 
               </div>
               
@@ -192,11 +400,23 @@ const EnergyDashboard = () => {
                 <div className="text-lg mb-4">
                   <span className="font-bold">Maandelijks elektraverbruik</span> [kWh]
                 </div>
+                {/* Debug info */}
+                {electricityData.length === 0 && <div className="text-red-500">Geen elektriciteitsdata beschikbaar</div>}
+                {electricityData.length > 0 && availableYears.length === 0 && (
+                  <div className="text-red-500">Geen jaartallen gedetecteerd in de data</div>
+                )}
+                
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={electricityData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <BarChart 
+                    data={electricityData} 
+                    margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                    barGap={2}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" 
+                    <XAxis 
+                      dataKey="month" 
                       tick={{ fontSize: 15 }}
+                      height={40}
                     />
                     <YAxis 
                       axisLine={false}
@@ -205,6 +425,7 @@ const EnergyDashboard = () => {
                       tickFormatter={(value) => value.toString()}
                       domain={[0, 'dataMax']}
                       tick={{ fontSize: 15 }}
+                      width={50}
                     />
                     <Tooltip />
                     <Legend 
@@ -213,49 +434,48 @@ const EnergyDashboard = () => {
                         return <span style={{fontSize: 14, color: '#000000' }}>{value}</span>;
                       }}
                     />
-                    <Bar dataKey="2022" fill="#4d4d4d" />
-                    <Bar dataKey="2023" fill="#a3a0a0" />
-                    <Bar dataKey="2024" fill="#ff6653" />
-                    <Bar dataKey="2025" fill="#372462" />
+                    {availableYears.map((year, index) => {
+                      // Kleurenpalet voor de jaren
+                      const colors = ['#4d4d4d', '#a3a0a0', '#ff6653', '#372462', '#00a651', '#0066cc'];
+                      return (
+                        <Bar 
+                          key={year}
+                          dataKey={year} 
+                          fill={colors[index % colors.length]} 
+                          name={year} 
+                        />
+                      );
+                    })}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               
               {/* Gas usage cards */}
               <div className="grid grid-cols-4 gap-4 mb-6">
-
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Gas 2022</div>
-                  <div className="font-bold text-xl">1,026,582 m³</div>
-                  <div className="flex items-center justify-center text-sm text-green-500 mt-1 w-full">
-                    <ArrowUpRight size={16} className="mr-1" />
-                    <span>+0.1% vs 2021</span>
+                {availableYears.map((year, index) => (
+                  <div key={year} className="bg-white rounded-lg shadow p-4 text-center">
+                    <div className="text-sm text-gray-600">Gas {year}</div>
+                    <div className="font-bold text-xl">{(gasTotals[year] || 0).toLocaleString('nl-NL')} m³</div>
+                    {index > 0 && (
+                      <div className={`flex items-center justify-center text-sm mt-1 w-full ${
+                        gasTotals[year] > gasTotals[availableYears[index-1]]
+                          ? 'text-green-500'
+                          : 'text-red-500'
+                      }`}>
+                        {gasTotals[year] > gasTotals[availableYears[index-1]] ? (
+                          <ArrowUpRight size={16} className="mr-1" />
+                        ) : (
+                          <ArrowDownRight size={16} className="mr-1" />
+                        )}
+                        <span>
+                          {gasTotals[availableYears[index-1]] === 0 
+                            ? 'N/A' 
+                            : `${Math.abs(Math.round((gasTotals[year] - gasTotals[availableYears[index-1]]) / gasTotals[availableYears[index-1]] * 1000) / 10).toFixed(1)}% vs ${availableYears[index-1]}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Gas 2023</div>
-                  <div className="font-bold text-xl">1,026,582 m³</div>
-                  <div className="flex items-center justify-center text-sm text-green-500 mt-1 w-full">
-                    <ArrowUpRight size={16} className="mr-1" />
-                    <span>+0.1% vs 2022</span>
-                  </div>
-                </div>
-
-
-                <div className="bg-white rounded-lg shadow p-4 text-center">
-                  <div className="text-sm text-gray-600">Gas 2024</div>
-                  <div className="font-bold text-xl">80,658 m³</div>
-                  <div className="flex items-center justify-center text-sm text-red-500 mt-1 w-full">
-                    <ArrowDownRight size={16} className="mr-1"/>
-                    <span>-38.8% vs 2023</span>
-                  </div>
-                </div>
-              
-                <div className="bg-white rounded-lg shadow p-4">
-                  <div className="text-sm text-gray-600">Gas 2025</div>
-                  <div className="font-bold text-xl">108,311 m³</div>
-                </div>
+                ))}
               
               </div>              
               
@@ -264,11 +484,23 @@ const EnergyDashboard = () => {
                 <div className="text-lg mb-4">
                   <span className="font-bold">Maandelijks gasverbruik</span> [m3]
                 </div>
+                {/* Debug info */}
+                {gasData.length === 0 && <div className="text-red-500">Geen gasdata beschikbaar</div>}
+                {gasData.length > 0 && availableYears.length === 0 && (
+                  <div className="text-red-500">Geen jaartallen gedetecteerd in de data</div>
+                )}
+                
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={gasData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <BarChart 
+                    data={gasData} 
+                    margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                    barGap={2}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" 
+                    <XAxis 
+                      dataKey="month" 
                       tick={{ fontSize: 15 }}
+                      height={40}
                     />
                     <YAxis 
                       axisLine={false}
@@ -277,6 +509,7 @@ const EnergyDashboard = () => {
                       tickFormatter={(value) => value.toString()}
                       domain={[0, 'dataMax']}
                       tick={{ fontSize: 15 }}
+                      width={50}
                     />
                     <Tooltip />
                     <Legend 
@@ -285,10 +518,18 @@ const EnergyDashboard = () => {
                         return <span style={{fontSize: 14, color: '#000000' }}>{value}</span>;
                       }}
                     />
-                    <Bar dataKey="2022" fill="#4d4d4d" />
-                    <Bar dataKey="2023" fill="#a3a0a0" />
-                    <Bar dataKey="2024" fill="#ff6653" />
-                    <Bar dataKey="2025" fill="#372462" />
+                    {availableYears.map((year, index) => {
+                      // Kleurenpalet voor de jaren
+                      const colors = ['#4d4d4d', '#a3a0a0', '#ff6653', '#372462', '#00a651', '#0066cc'];
+                      return (
+                        <Bar 
+                          key={year}
+                          dataKey={year} 
+                          fill={colors[index % colors.length]} 
+                          name={year} 
+                        />
+                      );
+                    })}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
