@@ -23,6 +23,7 @@ interface EnergyDataPoint {
   [key: string]: string | number; // Dynamische type voor alle velden
 }
 
+// Verkrijg data uit API en toon deze in een dashboard
 const EnergyDashboard: React.FC = () => {
   // State toevoegen voor data van API met correcte types
   const [electricityData, setElectricityData] = useState<EnergyDataPoint[]>([]);
@@ -50,20 +51,6 @@ const EnergyDashboard: React.FC = () => {
       return dataPoint;
     });
   };
-
-  // Render debug component om state te visualiseren
-  const DebugStateComponent = () => (
-    <div className="mb-4 p-2 bg-gray-100 border border-gray-300 rounded">
-      <h3 className="text-sm font-bold mb-1">Debug Informatie:</h3>
-      <div className="text-xs">
-        <div>Available Years: {availableYears.join(', ')}</div>
-        <div>Elektriciteitsdata geladen: {electricityData.length > 0 ? 'Ja' : 'Nee'}</div>
-        <div>Gasdata geladen: {gasData.length > 0 ? 'Ja' : 'Nee'}</div>
-        <div>Loading state: {loading ? 'Laden...' : 'Klaar'}</div>
-        {error && <div className="text-red-500">Error: {error}</div>}
-      </div>
-    </div>
-  );
 
   // Data ophalen van API endpoints
   useEffect(() => {
@@ -372,11 +359,11 @@ const EnergyDashboard: React.FC = () => {
                   <div key={year} className="bg-white rounded-lg shadow p-4 text-center">
                     <div className="text-sm text-gray-600">Elektra {year}</div>
                     <div className="font-bold text-xl">{(electricityTotals[year] || 0).toLocaleString('nl-NL')} kWh</div>
-                    {index > 0 && (
+                    {index > 0 && index < availableYears.length - 1 && (
                       <div className={`flex items-center justify-center text-sm mt-1 w-full ${
                         electricityTotals[year] > electricityTotals[availableYears[index-1]]
-                          ? 'text-green-500'
-                          : 'text-red-500'
+                          ? 'text-red-500'
+                          : 'text-green-500'
                       }`}>
                         {electricityTotals[year] > electricityTotals[availableYears[index-1]] ? (
                           <ArrowUpRight size={16} className="mr-1" />
@@ -421,11 +408,10 @@ const EnergyDashboard: React.FC = () => {
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
-                      ticks={[0, 40000, 80000, 120000]} // Only 4 ticks = 3 grid lines
+                      ticks={[0, 20000, 40000, 60000]} // Only 4 ticks = 3 grid lines
                       tickFormatter={(value) => value.toString()}
                       domain={[0, 'dataMax']}
                       tick={{ fontSize: 15 }}
-                      width={50}
                     />
                     <Tooltip />
                     <Legend 
@@ -456,11 +442,11 @@ const EnergyDashboard: React.FC = () => {
                   <div key={year} className="bg-white rounded-lg shadow p-4 text-center">
                     <div className="text-sm text-gray-600">Gas {year}</div>
                     <div className="font-bold text-xl">{(gasTotals[year] || 0).toLocaleString('nl-NL')} m³</div>
-                    {index > 0 && (
+                    {index > 0 && index < availableYears.length - 1 && (
                       <div className={`flex items-center justify-center text-sm mt-1 w-full ${
                         gasTotals[year] > gasTotals[availableYears[index-1]]
-                          ? 'text-green-500'
-                          : 'text-red-500'
+                          ? 'text-red-500'
+                          : 'text-green-500'
                       }`}>
                         {gasTotals[year] > gasTotals[availableYears[index-1]] ? (
                           <ArrowUpRight size={16} className="mr-1" />
@@ -505,11 +491,10 @@ const EnergyDashboard: React.FC = () => {
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
-                      ticks={[0, 7500, 15000, 22500]} // Only 4 ticks = 3 grid lines
+                      ticks={[0, 5000, 10000, 15000]} // Only 4 ticks = 3 grid lines
                       tickFormatter={(value) => value.toString()}
                       domain={[0, 'dataMax']}
                       tick={{ fontSize: 15 }}
-                      width={50}
                     />
                     <Tooltip />
                     <Legend 
